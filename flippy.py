@@ -68,7 +68,8 @@ class Flipper:
     PAPER_CHOICES = PAPER_SIZES.keys()
 
     def __init__(self, **kwargs):
-        self.video_file_name = kwargs.get('input', 'samples/lemoncat.mp4')
+        self.video_file_name = kwargs.get('input')
+        self.output_file_name = kwargs.get('output')
         self.frame_max_size = kwargs.get('frame_size', Size(40, 30))
         self.margins = kwargs.get('margin', Margin(10, 10, 10, 10))
         self.paper_format = kwargs.get('paper_format', 'a4')
@@ -135,11 +136,11 @@ class Flipper:
                            y=y0 + y * self.frame_max_size.height,
                            w=w)
 
-        self.pdf.output(name='out/flip-book.pdf')
+        self.pdf.output(name=self.output_file_name)
 
 
 def main():
-    flipper = Flipper(input='samples/lemoncat.mp4')
+    flipper = Flipper(input='samples/lemoncat.mp4', output='out/flip-book.pdf')
     flipper.process()
 
 if __name__ == '__main__':
