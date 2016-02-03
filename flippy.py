@@ -93,20 +93,49 @@ class Flipper:
 
     def add_page(self):
         self.pdf.add_page()
-
-        for x in range(0, self.nx):
-            xx = self.margins.left + x * self.frame_max_size.width
-            for y in range(0, self.ny):
-                yy = self.margins.top + y * self.frame_max_size.height
-                self.pdf.line(xx, sel)
+        x0 = self.margins.left
+        y0 = self.margins.top
+        x1 = x0 + self.nx * self.frame_max_size.width
+        y1 = y0 + self.ny * self.frame_max_size.height
+        self.pdf.set_draw_color(0, 0, 0)
+        self.pdf.set_line_width(pt2mm(0.1))
+        for x in range(0, self.nx + 1):
+            xx = x0 + x * self.frame_max_size.width
+            self.pdf.line(xx, y0, xx, y1)
+        for y in range(0, self.ny + 1):
+            yy = y0 + y * self.frame_max_size.height
+            self.pdf.line(x0, yy, x1, yy)
 
     def process(self):
         self.add_page()
+        i = 0
+        x = 0
+        y = 0
+        page = 0
+        x0 = self.margins.left
+        y0 = self.margins.top
+        w = int(self.paper.width - self.margins.left - self.margins.right) / self.nx
         for frame in self.clip.iter_frames():
+            temp_file = 'out/{}-{}-{}.jpg'.format(page, x, y)
+            print temp_file
             im = Image.fromarray(frame)
-            #
-            # i += 1
-            # print i
+            i += 1
+            x += 1
+            if x == self.nx:
+                x = 0
+                y += 1
+                if y == self.ny:
+                    y = 0
+                    self.add_page()
+                    page += 1
+            im.save(temp_file)
+            im.close()
+            self.pdf.image(temp_file,
+                           x=x0 + x * self.frame_max_size.width,
+                           y=y0 + y * self.frame_max_size.height,
+                           w=w)
+
+        self.pdf.output(name='out/flip-book.pdf')
 
 
 def main():
