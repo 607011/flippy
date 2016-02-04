@@ -30,6 +30,14 @@ class Size:
         return Size(sz[0], sz[1])
 
 
+class Point:
+    """ Class to store a point on a 2D plane."""
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
 class Margin:
     """ Class to store the margins of a rectangular boundary."""
 
@@ -111,44 +119,51 @@ class FlipbookCreator:
         pdf.set_author('Oliver Lau <ola@ct.de> - Heise Medien GmbH & Co. KG')
         pdf.set_creator('flippy')
         pdf.set_keywords('flip-book, video, animated GIF')
+        pdf.set_draw_color(128, 128, 128)
+        pdf.set_line_width(0.1)
+        pdf.set_font('Helvetica', '', 12)
         pdf.add_page()
         tmp_files = []
         i = 0
-        x = 0
-        y = 0
         page = 0
+        tx, ty = -1, 0
         x0 = margins.left
         y0 = margins.top
         x1 = x0 + nx * total.width
         y1 = y0 + ny * total.height
-        pdf.set_draw_color(128, 128, 128)
-        pdf.set_line_width(0.1)
         for f in self.clip.iter_frames():
             ready = float(i + 1) / frame_count
             if self.verbosity:
                 sys.stdout.write('\rProcessing frames |{:30}| {}%'
                                  .format('X' * int(30 * ready), int(100 * ready)))
                 sys.stdout.flush()
-            temp_file = 'tmp-{}-{}-{}.jpg'.format(page, x, y)
+            temp_file = 'tmp-{}-{}-{}.jpg'.format(page, tx, ty)
             tmp_files.append(temp_file)
             im = Image.fromarray(f)
             im.thumbnail(frame.to_tuple())
-            i += 1
-            x += 1
-            if x == nx:
-                x = 0
-                y += 1
-                if y == ny:
-                    y = 0
+            tx += 1
+            if tx == nx:
+                tx = 0
+                ty += 1
+                if ty == ny:
+                    ty = 0
                     draw_raster()
                     pdf.add_page()
                     page += 1
             im.save(temp_file)
+            x = x0 + tx * total.width
+            y = y0 + ty * total.height
             pdf.image(temp_file,
-                      x=x0 + x * total.width + offset,
-                      y=y0 + y * total.height,
+                      x=x + offset,
+                      y=y,
                       w=frame_mm.width,
                       h=frame_mm.height)
+            text = Point(x, y + frame_mm.height - 2)
+            pdf.rotate(90, text.x, text.y)
+            pdf.text(text.x, text.y + 6, '{}'.format(i))
+            pdf.rotate(0)
+            i += 1
+
         if y != 0 and x != 0:
             draw_raster()
 
@@ -178,7 +193,7 @@ def main():
         paper_format=args.paper,
         output=args.out,
         height=args.height,
-        dpi=150)
+        dpi=args.dpi)
 
 if __name__ == '__main__':
     main()
