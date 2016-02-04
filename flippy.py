@@ -6,7 +6,9 @@
 # Copyright (c) 2016 Oliver Lau <ola@ct.de>, Heise Medien GmbH & Co. KG
 # All rights reserved.
 
-import string, os
+import string
+import os
+import sys
 from PIL import Image
 from fpdf import FPDF
 from moviepy.editor import *
@@ -38,18 +40,6 @@ class Size:
         return Size(sz[0], sz[1])
 
 
-class Point:
-    """ Class to store a point on a 2D plane."""
-
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    @staticmethod
-    def from_tuple(p):
-        return Point(p[0], p[1])
-
-
 class Margin:
     """ Class to store the margins of a rectangular boundary."""
 
@@ -71,33 +61,44 @@ class Flipper:
     PAPER_CHOICES = PAPER_SIZES.keys()
 
     def __init__(self, **kwargs):
-        self.video_file_name = kwargs.get('input')
-        self.output_file_name = kwargs.get('output')
-        dpi = kwargs.get('dpi', 300)
-        height_mm = float(kwargs.get('height', 32))
-        self.margins = kwargs.get('margin', Margin(10, 10, 10, 10))
-        self.paper_format = kwargs.get('paper_format', 'a4')
-        self.paper = self.PAPER_SIZES[string.lower(self.paper_format)]
-        self.printable_area = Size(self.paper.width - self.margins.left - self.margins.right,
-                                   self.paper.height - self.margins.top - self.margins.bottom)
-        self.clip = VideoFileClip(self.video_file_name)
-        frame = Size.from_tuple(self.clip.size)
-        self.frame_mm = Size(height_mm / frame.height * frame.width, height_mm)
-        self.frame = Size(int(self.frame_mm.width / 25.4 * dpi),
-                          int(self.frame_mm.height / 25.4 * dpi))
-        self.nx = int(self.printable_area.width / self.frame_mm.width)
-        self.ny = int(self.printable_area.height / self.frame_mm.height)
-        print 'FPS = {}, SIZE = {}x{}, dpi={}, SIZE = {}x{} {}x{}, tiles = {}x{}'.format(
-            self.clip.fps,
-            frame.width, frame.height,
-            dpi,
-            self.frame.width, self.frame.height,
-            self.frame_mm.width, self.frame_mm.height,
-            self.nx, self.ny
-        )
+        self.input_file_name = kwargs.get('input')
+        self.clip = VideoFileClip(self.input_file_name)
 
-    def process(self):
-        pdf = FPDF(unit='mm', format=self.paper_format.upper(), orientation='L')
+    def process(self, **kwargs):
+        output_file_name = kwargs.get('output')
+        dpi = kwargs.get('dpi', 150)
+        height_mm = float(kwargs.get('height', 50))
+        margins = kwargs.get('margin', Margin(10, 10, 10, 10))
+        paper_format = kwargs.get('paper_format', 'a4')
+        paper = self.PAPER_SIZES[string.lower(paper_format)]
+        printable_area = Size(paper.width - margins.left - margins.right,
+                              paper.height - margins.top - margins.bottom)
+        clip_size = Size.from_tuple(self.clip.size)
+        frame_mm = Size(height_mm / clip_size.height * clip_size.width, height_mm)
+        frame = Size(int(frame_mm.width / 25.4 * dpi),
+                     int(frame_mm.height / 25.4 * dpi))
+        nx = int(printable_area.width / frame_mm.width)
+        ny = int(printable_area.height / frame_mm.height)
+        frame_count = int(self.clip.duration * self.clip.fps)
+        print 'Input: {} fps, {}x{}, {} frames'\
+            '\n       from: {}'\
+            .format(
+                self.clip.fps,
+                clip_size.width,
+                clip_size.height,
+                frame_count,
+                self.input_file_name
+            )
+        print 'Output: {}dpi, {}x{}, {:.2f}mm x {:.2f}mm, {}x{} tiles'\
+            '\n        to: {}'\
+            .format(
+                dpi,
+                frame.width, frame.height,
+                frame_mm.width, frame_mm.height,
+                nx, ny,
+                output_file_name
+            )
+        pdf = FPDF(unit='mm', format=paper_format.upper(), orientation='L')
         pdf.set_compression(True)
         pdf.set_title('Funny video')
         pdf.set_author('Oliver Lau <ola@ct.de> - Heise Medien GmbH & Co. KG')
@@ -109,50 +110,56 @@ class Flipper:
         x = 0
         y = 0
         page = 0
-        x0 = self.margins.left
-        y0 = self.margins.top
-        x1 = x0 + self.nx * self.frame_mm.width
-        y1 = y0 + self.ny * self.frame_mm.height
-        for frame in self.clip.iter_frames():
+        x0 = margins.left
+        y0 = margins.top
+        x1 = x0 + nx * frame_mm.width
+        y1 = y0 + ny * frame_mm.height
+        pdf.set_draw_color(128, 128, 128)
+        pdf.set_line_width(0.1)
+        for f in self.clip.iter_frames():
+            ready = float(i + 1) / frame_count
+            sys.stdout.write('\rProcessing frames |{:30}| {:}%'
+                             .format('X' * int(30 * ready), int(100 * ready)))
+            sys.stdout.flush()
             temp_file = 'tmp-{}-{}-{}.jpg'.format(page, x, y)
             tmp_files.append(temp_file)
-            print '{}@{}'.format(i, page),
-            im = Image.fromarray(frame)
-            im.thumbnail((self.frame.to_tuple()))
+            im = Image.fromarray(f)
+            im.thumbnail((frame.to_tuple()))
             i += 1
             x += 1
-            if x == self.nx:
+            if x == nx:
                 x = 0
                 y += 1
-                if y == self.ny:
+                if y == ny:
                     y = 0
+                    for ix in range(0, nx + 1):
+                        xx = x0 + ix * frame_mm.width
+                        pdf.line(xx, y0, xx, y1)
+                    for iy in range(0, ny + 1):
+                        yy = y0 + iy * frame_mm.height
+                        pdf.line(x0, yy, x1, yy)
                     pdf.add_page()
                     page += 1
             im.save(temp_file)
             im.close()
             pdf.image(temp_file,
-                           x=x0 + x * self.frame_mm.width,
-                           y=y0 + y * self.frame_mm.height,
-                           w=self.frame_mm.width,
-                           h=self.frame_mm.height)
-            pdf.set_draw_color(128, 128, 128)
-            pdf.set_line_width(0.1)
-            for ix in range(0, self.nx + 1):
-                xx = x0 + ix * self.frame_mm.width
-                pdf.line(xx, y0, xx, y1)
-            for iy in range(0, self.ny + 1):
-                yy = y0 + iy * self.frame_mm.height
-                pdf.line(x0, yy, x1, yy)
+                      x=x0 + x * frame_mm.width,
+                      y=y0 + y * frame_mm.height,
+                      w=frame_mm.width,
+                      h=frame_mm.height)
 
-        pdf.output(name=self.output_file_name)
+        print '\nGenerating PDF ...'
+        pdf.output(name=output_file_name)
         print 'Removing temporary files ...'
         for temp_file in tmp_files:
             os.remove(temp_file)
 
 
 def main():
-    flipper = Flipper(input='samples/lemoncat.mp4', output='flip-book.pdf')
-    flipper.process()
+    flipper = Flipper(input='samples/lemoncat.mp4')
+    flipper.process(output='flip-book.pdf',
+                    height=29.5,
+                    dpi=150)
 
 if __name__ == '__main__':
     main()
