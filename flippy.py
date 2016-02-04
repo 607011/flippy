@@ -15,14 +15,6 @@ from fpdf import FPDF
 from moviepy.editor import *
 
 
-def mm2pt(mm):
-    return 72 * mm / 2.54 / 10
-
-
-def pt2mm(mm):
-    return 2.54 * mm / 72 * 10
-
-
 class Size:
     """ Class to store the size of a rectangle."""
 
@@ -32,9 +24,6 @@ class Size:
 
     def to_tuple(self):
         return self.width, self.height
-
-    def aspect_ratio(self):
-        return float(self.width) / float(self.height)
 
     @staticmethod
     def from_tuple(sz):
@@ -124,13 +113,13 @@ class FlipbookCreator:
         for f in self.clip.iter_frames():
             ready = float(i + 1) / frame_count
             if self.verbosity:
-                sys.stdout.write('\rProcessing frames |{:30}| {:}%'
+                sys.stdout.write('\rProcessing frames |{:30}| {}%'
                                  .format('X' * int(30 * ready), int(100 * ready)))
                 sys.stdout.flush()
             temp_file = 'tmp-{}-{}-{}.jpg'.format(page, x, y)
             tmp_files.append(temp_file)
             im = Image.fromarray(f)
-            im.thumbnail((frame.to_tuple()))
+            im.thumbnail(frame.to_tuple())
             i += 1
             x += 1
             if x == nx:
