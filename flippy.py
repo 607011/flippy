@@ -10,9 +10,10 @@ import string
 import os
 import sys
 import argparse
-from PIL import Image
+from PIL import Image, ImagePalette, GifImagePlugin
 from fpdf import FPDF
 from moviepy.editor import *
+
 
 class Size:
     """ Class to store the size of a rectangle."""
@@ -47,6 +48,21 @@ class Margin:
         self.left = left
 
 
+class ImageSequence:
+    """ Generator for a sequence of Image objects from an animated GIF """
+
+    def __init__(self, im):
+        self.im = im
+
+    def __getitem__(self, ix):
+        try:
+            if ix:
+                self.im.seek(ix)
+            return self.im
+        except EOFError:
+            raise IndexError
+
+
 class FlipbookCreator:
     PAPER_SIZES = {
         'a5': Size(210, 148),
@@ -60,9 +76,20 @@ class FlipbookCreator:
     def __init__(self, **kwargs):
         self.verbosity = kwargs.get('verbosity', 0)
         self.input_file_name = kwargs.get('input')
+        self.frames = None
+        self.clip = None
+        if self.input_file_name.endswith('.gif'):
+            self.im = Image.open(self.input_file_name)
+            self.frames = ImageSequence(self.im)
+            self.frame_count = len(list(ImageSequence(self.im)))
+            self.fps = 0
+            self.last_im = Image.new('RGBA', self.im.size)
+        else:
+            self.clip = VideoFileClip(self.input_file_name)
+            self.fps = self.clip.fps
+            self.frame_count = int(self.clip.duration * self.clip.fps)
         if self.verbosity > 0:
             print 'Opening {} ...'.format(self.input_file_name)
-        self.clip = VideoFileClip(self.input_file_name)
 
     def process(self, **kwargs):
         def draw_raster():
@@ -78,20 +105,25 @@ class FlipbookCreator:
         tmp_files = []
         output_file_name = kwargs.get('output')
         dpi = kwargs.get('dpi', 150)
-        fps = kwargs.get('fps', 10)
-        if fps != self.clip.fps:
-            if self.verbosity > 0:
-                print 'Transcoding from {} fps to {} fps ...'.format(self.clip.fps, fps)
-            self.clip.write_videofile('tmp.mp4', fps=fps, audio=False)
-            tmp_files.append('tmp.mp4')
-            self.clip = VideoFileClip('tmp.mp4')
+        if self.clip:
+            fps = kwargs.get('fps', 10)
+            if fps != self.clip.fps:
+                if self.verbosity > 0:
+                    print 'Transcoding from {} fps to {} fps ...'.format(self.clip.fps, fps)
+                self.clip.write_videofile('tmp.mp4', fps=fps, audio=False)
+                tmp_files.append('tmp.mp4')
+                self.clip = VideoFileClip('tmp.mp4')
+                self.fps = self.clip.fps
+                self.frame_count = int(self.clip.duration * self.fps)
+            clip_size = Size.from_tuple(self.clip.size)
+        elif self.frames:
+            clip_size = Size.from_tuple(self.im.size)
         height_mm = float(kwargs.get('height', 50))
         margins = kwargs.get('margin', Margin(10, 10, 10, 10))
         paper_format = kwargs.get('paper_format', 'a4')
         paper = self.PAPER_SIZES[string.lower(paper_format)]
         printable_area = Size(paper.width - margins.left - margins.right,
                               paper.height - margins.top - margins.bottom)
-        clip_size = Size.from_tuple(self.clip.size)
         frame_mm = Size(height_mm / clip_size.height * clip_size.width, height_mm)
         offset = 0.2 * frame_mm.width
         total = Size(offset + frame_mm.width, frame_mm.height)
@@ -99,15 +131,14 @@ class FlipbookCreator:
                      int(frame_mm.height / 25.4 * dpi))
         nx = int(printable_area.width / total.width)
         ny = int(printable_area.height / total.height)
-        frame_count = int(self.clip.duration * self.clip.fps)
         if self.verbosity > 0:
             print 'Input:  {} fps, {}x{}, {} frames'\
                 '\n        from: {}'\
                 .format(
-                    self.clip.fps,
+                    self.fps,
                     clip_size.width,
                     clip_size.height,
-                    frame_count,
+                    self.frame_count,
                     self.input_file_name
                 )
             print 'Output: {}dpi, {}x{}, {:.2f}mm x {:.2f}mm, {}x{} tiles'\
@@ -136,17 +167,28 @@ class FlipbookCreator:
         y0 = margins.top
         x1 = x0 + nx * total.width
         y1 = y0 + ny * total.height
-        for f in self.clip.iter_frames():
-            ready = float(i + 1) / frame_count
+
+        if self.clip:
+            all_frames = self.clip.iter_frames()
+        elif self.frames:
+            all_frames = ImageSequence(self.im)
+        else:
+            all_frames = []
+        for f in all_frames:
+            ready = float(i + 1) / self.frame_count
             if self.verbosity:
                 sys.stdout.write('\rProcessing frames |{:30}| {}%'
                                  .format('X' * int(30 * ready), int(100 * ready)))
                 sys.stdout.flush()
-            temp_file = 'tmp-{}-{}-{}.jpg'.format(page, tx, ty)
-            tmp_files.append(temp_file)
-            im = Image.fromarray(f)
-            im.thumbnail(frame.to_tuple())
             tx += 1
+            if type(f) == GifImagePlugin.GifImageFile:
+                temp_file = 'tmp-{}-{}-{}.gif'.format(page, tx, ty)
+                im = Image.alpha_composite(self.last_im, f.convert('RGBA'))
+                self.last_im = im.copy()
+            else:
+                temp_file = 'tmp-{}-{}-{}.jpg'.format(page, tx, ty)
+                im = Image.fromarray(f)
+                im.thumbnail(frame.to_tuple())
             if tx == nx:
                 tx = 0
                 ty += 1
@@ -156,6 +198,7 @@ class FlipbookCreator:
                     pdf.add_page()
                     page += 1
             im.save(temp_file)
+            tmp_files.append(temp_file)
             x = x0 + tx * total.width
             y = y0 + ty * total.height
             pdf.image(temp_file,
@@ -165,7 +208,7 @@ class FlipbookCreator:
                       h=frame_mm.height)
             text = Point(x, y + frame_mm.height - 2)
             pdf.rotate(90, text.x, text.y)
-            pdf.text(text.x, text.y + 6, '{}'.format(i))
+            pdf.text(text.x, text.y + 5, '{}'.format(i))
             pdf.rotate(0)
             i += 1
 
