@@ -58,6 +58,17 @@ class FlipbookCreator:
         self.clip = VideoFileClip(self.input_file_name)
 
     def process(self, **kwargs):
+
+        def draw_raster():
+            for ix in range(0, nx + 1):
+                xx = x0 + ix * total.width
+                pdf.line(xx, y0, xx, y1)
+                if ix != nx:
+                    pdf.line(xx + offset, y0, xx + offset, y1)
+            for iy in range(0, ny + 1):
+                yy = y0 + iy * total.height
+                pdf.line(x0, yy, x1, yy)
+
         output_file_name = kwargs.get('output')
         dpi = kwargs.get('dpi', 150)
         height_mm = float(kwargs.get('height', 50))
@@ -68,10 +79,12 @@ class FlipbookCreator:
                               paper.height - margins.top - margins.bottom)
         clip_size = Size.from_tuple(self.clip.size)
         frame_mm = Size(height_mm / clip_size.height * clip_size.width, height_mm)
+        offset = 0.2 * frame_mm.width
+        total = Size(offset + frame_mm.width, frame_mm.height)
         frame = Size(int(frame_mm.width / 25.4 * dpi),
                      int(frame_mm.height / 25.4 * dpi))
-        nx = int(printable_area.width / frame_mm.width)
-        ny = int(printable_area.height / frame_mm.height)
+        nx = int(printable_area.width / total.width)
+        ny = int(printable_area.height / total.height)
         frame_count = int(self.clip.duration * self.clip.fps)
         if self.verbosity > 0:
             print 'Input:  {} fps, {}x{}, {} frames'\
@@ -106,8 +119,8 @@ class FlipbookCreator:
         page = 0
         x0 = margins.left
         y0 = margins.top
-        x1 = x0 + nx * frame_mm.width
-        y1 = y0 + ny * frame_mm.height
+        x1 = x0 + nx * total.width
+        y1 = y0 + ny * total.height
         pdf.set_draw_color(128, 128, 128)
         pdf.set_line_width(0.1)
         for f in self.clip.iter_frames():
@@ -127,20 +140,17 @@ class FlipbookCreator:
                 y += 1
                 if y == ny:
                     y = 0
-                    for ix in range(0, nx + 1):
-                        xx = x0 + ix * frame_mm.width
-                        pdf.line(xx, y0, xx, y1)
-                    for iy in range(0, ny + 1):
-                        yy = y0 + iy * frame_mm.height
-                        pdf.line(x0, yy, x1, yy)
+                    draw_raster()
                     pdf.add_page()
                     page += 1
             im.save(temp_file)
             pdf.image(temp_file,
-                      x=x0 + x * frame_mm.width,
-                      y=y0 + y * frame_mm.height,
+                      x=x0 + x * total.width + offset,
+                      y=y0 + y * total.height,
                       w=frame_mm.width,
                       h=frame_mm.height)
+        if y != 0 and x != 0:
+            draw_raster()
 
         if self.verbosity > 0:
             print '\nGenerating PDF ...'
