@@ -80,10 +80,18 @@ class FlipbookCreator:
         self.clip = None
         if self.input_file_name.endswith('.gif'):
             self.im = Image.open(self.input_file_name)
+            self.palette = self.im.getpalette()
             self.frames = ImageSequence(self.im)
             self.frame_count = len(list(ImageSequence(self.im)))
             self.fps = 0
-            self.last_im = Image.new('RGBA', self.im.size)
+            self.last_im = Image.new('P', self.im.size)
+            for i in range(0, 2):
+                for f in ImageSequence(self.im):
+                    self.last_im.putpalette(self.palette)
+                    #  im = Image.alpha_composite(self.last_im, f.convert('RGBA'))
+                    im = self.last_im.copy()
+                    im.paste(f)
+                    self.last_im = im.copy()
         else:
             self.clip = VideoFileClip(self.input_file_name)
             self.fps = self.clip.fps
@@ -163,10 +171,8 @@ class FlipbookCreator:
         i = 0
         page = 0
         tx, ty = -1, 0
-        x0 = margins.left
-        y0 = margins.top
-        x1 = x0 + nx * total.width
-        y1 = y0 + ny * total.height
+        x0, y0 = margins.left, margins.top
+        x1, y1 = x0 + nx * total.width, y0 + ny * total.height
 
         if self.clip:
             all_frames = self.clip.iter_frames()
@@ -182,11 +188,10 @@ class FlipbookCreator:
                 sys.stdout.flush()
             tx += 1
             if type(f) == GifImagePlugin.GifImageFile:
-                temp_file = 'tmp-{}-{}-{}.gif'.format(page, tx, ty)
-                im = Image.alpha_composite(self.last_im, f.convert('RGBA'))
-                self.last_im = im.copy()
+                f.putpalette(self.palette)
+                self.last_im.paste(f)
+                im = self.last_im.convert('RGBA')
             else:
-                temp_file = 'tmp-{}-{}-{}.jpg'.format(page, tx, ty)
                 im = Image.fromarray(f)
                 im.thumbnail(frame.to_tuple())
             if tx == nx:
@@ -197,6 +202,7 @@ class FlipbookCreator:
                     draw_raster()
                     pdf.add_page()
                     page += 1
+            temp_file = 'tmp-{}-{}-{}.jpg'.format(page, tx, ty)
             im.save(temp_file)
             tmp_files.append(temp_file)
             x = x0 + tx * total.width
