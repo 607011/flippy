@@ -9,6 +9,7 @@
 import string
 import os
 import sys
+import argparse
 from PIL import Image
 from fpdf import FPDF
 from moviepy.editor import *
@@ -50,7 +51,7 @@ class Margin:
         self.left = left
 
 
-class Flipper:
+class FlipbookCreator:
     PAPER_SIZES = {
         'a5': Size(210, 148),
         'a4': Size(297, 210),
@@ -61,7 +62,10 @@ class Flipper:
     PAPER_CHOICES = PAPER_SIZES.keys()
 
     def __init__(self, **kwargs):
+        self.verbosity = kwargs.get('verbosity', 0)
         self.input_file_name = kwargs.get('input')
+        if self.verbosity > 0:
+            print 'Opening {} ...'.format(self.input_file_name)
         self.clip = VideoFileClip(self.input_file_name)
 
     def process(self, **kwargs):
@@ -80,24 +84,25 @@ class Flipper:
         nx = int(printable_area.width / frame_mm.width)
         ny = int(printable_area.height / frame_mm.height)
         frame_count = int(self.clip.duration * self.clip.fps)
-        print 'Input: {} fps, {}x{}, {} frames'\
-            '\n       from: {}'\
-            .format(
-                self.clip.fps,
-                clip_size.width,
-                clip_size.height,
-                frame_count,
-                self.input_file_name
-            )
-        print 'Output: {}dpi, {}x{}, {:.2f}mm x {:.2f}mm, {}x{} tiles'\
-            '\n        to: {}'\
-            .format(
-                dpi,
-                frame.width, frame.height,
-                frame_mm.width, frame_mm.height,
-                nx, ny,
-                output_file_name
-            )
+        if self.verbosity > 0:
+            print 'Input:  {} fps, {}x{}, {} frames'\
+                '\n        from: {}'\
+                .format(
+                    self.clip.fps,
+                    clip_size.width,
+                    clip_size.height,
+                    frame_count,
+                    self.input_file_name
+                )
+            print 'Output: {}dpi, {}x{}, {:.2f}mm x {:.2f}mm, {}x{} tiles'\
+                '\n        to: {}'\
+                .format(
+                    dpi,
+                    frame.width, frame.height,
+                    frame_mm.width, frame_mm.height,
+                    nx, ny,
+                    output_file_name
+                )
         pdf = FPDF(unit='mm', format=paper_format.upper(), orientation='L')
         pdf.set_compression(True)
         pdf.set_title('Funny video')
@@ -118,9 +123,10 @@ class Flipper:
         pdf.set_line_width(0.1)
         for f in self.clip.iter_frames():
             ready = float(i + 1) / frame_count
-            sys.stdout.write('\rProcessing frames |{:30}| {:}%'
-                             .format('X' * int(30 * ready), int(100 * ready)))
-            sys.stdout.flush()
+            if self.verbosity:
+                sys.stdout.write('\rProcessing frames |{:30}| {:}%'
+                                 .format('X' * int(30 * ready), int(100 * ready)))
+                sys.stdout.flush()
             temp_file = 'tmp-{}-{}-{}.jpg'.format(page, x, y)
             tmp_files.append(temp_file)
             im = Image.fromarray(f)
@@ -141,25 +147,39 @@ class Flipper:
                     pdf.add_page()
                     page += 1
             im.save(temp_file)
-            im.close()
             pdf.image(temp_file,
                       x=x0 + x * frame_mm.width,
                       y=y0 + y * frame_mm.height,
                       w=frame_mm.width,
                       h=frame_mm.height)
 
-        print '\nGenerating PDF ...'
+        if self.verbosity > 0:
+            print '\nGenerating PDF ...'
         pdf.output(name=output_file_name)
-        print 'Removing temporary files ...'
+        if self.verbosity > 0:
+            print 'Removing temporary files ...'
         for temp_file in tmp_files:
             os.remove(temp_file)
 
 
 def main():
-    flipper = Flipper(input='samples/lemoncat.mp4')
-    flipper.process(output='flip-book.pdf',
-                    height=29.5,
-                    dpi=150)
+    parser = argparse.ArgumentParser(description='Generate flip-books from videos.')
+    parser.add_argument('video', type=str, help='file name of video to process.')
+    parser.add_argument('--out', type=str, help='name of PDF file to write to.', default='flip-book.pdf')
+    parser.add_argument('--height', type=float, help='height of flip-book.', default=30)
+    parser.add_argument('--paper', type=str, choices=FlipbookCreator.PAPER_CHOICES, help='paper size.', default='a4')
+    parser.add_argument('--dpi', type=int, help='DPI', default=200)
+    parser.add_argument('-v', type=int, help='verbosity level.', default=1)
+    args = parser.parse_args()
+
+    flippy = FlipbookCreator(
+        input=args.video,
+        verbosity=args.v)
+    flippy.process(
+        paper_format=args.paper,
+        output=args.out,
+        height=args.height,
+        dpi=150)
 
 if __name__ == '__main__':
     main()
