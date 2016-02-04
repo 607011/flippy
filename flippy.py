@@ -14,7 +14,6 @@ from PIL import Image
 from fpdf import FPDF
 from moviepy.editor import *
 
-
 class Size:
     """ Class to store the size of a rectangle."""
 
@@ -66,7 +65,6 @@ class FlipbookCreator:
         self.clip = VideoFileClip(self.input_file_name)
 
     def process(self, **kwargs):
-
         def draw_raster():
             for ix in range(0, nx + 1):
                 xx = x0 + ix * total.width
@@ -77,8 +75,16 @@ class FlipbookCreator:
                 yy = y0 + iy * total.height
                 pdf.line(x0, yy, x1, yy)
 
+        tmp_files = []
         output_file_name = kwargs.get('output')
         dpi = kwargs.get('dpi', 150)
+        fps = kwargs.get('fps', 10)
+        if fps != self.clip.fps:
+            if self.verbosity > 0:
+                print 'Transcoding from {} fps to {} fps ...'.format(self.clip.fps, fps)
+            self.clip.write_videofile('tmp.mp4', fps=fps, audio=False)
+            tmp_files.append('tmp.mp4')
+            self.clip = VideoFileClip('tmp.mp4')
         height_mm = float(kwargs.get('height', 50))
         margins = kwargs.get('margin', Margin(10, 10, 10, 10))
         paper_format = kwargs.get('paper_format', 'a4')
@@ -123,7 +129,6 @@ class FlipbookCreator:
         pdf.set_line_width(0.1)
         pdf.set_font('Helvetica', '', 12)
         pdf.add_page()
-        tmp_files = []
         i = 0
         page = 0
         tx, ty = -1, 0
@@ -183,6 +188,7 @@ def main():
     parser.add_argument('--height', type=float, help='height of flip-book.', default=30)
     parser.add_argument('--paper', type=str, choices=FlipbookCreator.PAPER_CHOICES, help='paper size.', default='a4')
     parser.add_argument('--dpi', type=int, help='DPI', default=200)
+    parser.add_argument('--fps', type=int, help='Frames per second', default=10)
     parser.add_argument('-v', type=int, help='verbosity level.', default=1)
     args = parser.parse_args()
 
