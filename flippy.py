@@ -48,7 +48,7 @@ class Margin:
         self.left = left
 
 
-class ImageSequence:
+class AnimatedGif:
     """ Generator for a sequence of Image objects from an animated GIF """
 
     def __init__(self, im):
@@ -61,6 +61,9 @@ class ImageSequence:
             return self.im
         except EOFError:
             raise IndexError
+
+    def open(self, file_name):
+        self.im = Image.open(file_name)
 
 
 class FlipbookCreator:
@@ -81,12 +84,12 @@ class FlipbookCreator:
         if self.input_file_name.endswith('.gif'):
             self.im = Image.open(self.input_file_name)
             self.palette = self.im.getpalette()
-            self.frames = ImageSequence(self.im)
-            self.frame_count = len(list(ImageSequence(self.im)))
+            self.frames = AnimatedGif(self.im)
+            self.frame_count = len(list(AnimatedGif(self.im)))
             self.fps = 0
             self.last_im = Image.new('P', self.im.size)
             for i in range(0, 2):
-                for f in ImageSequence(self.im):
+                for f in AnimatedGif(self.im):
                     self.last_im.putpalette(self.palette)
                     #  im = Image.alpha_composite(self.last_im, f.convert('RGBA'))
                     im = self.last_im.copy()
@@ -104,7 +107,7 @@ class FlipbookCreator:
             for ix in range(0, nx + 1):
                 xx = x0 + ix * total.width
                 pdf.line(xx, y0, xx, y1)
-                if ix != nx:
+                if offset > 0 and ix != nx:
                     pdf.line(xx + offset, y0, xx + offset, y1)
             for iy in range(0, ny + 1):
                 yy = y0 + iy * total.height
@@ -113,6 +116,7 @@ class FlipbookCreator:
         tmp_files = []
         output_file_name = kwargs.get('output')
         dpi = kwargs.get('dpi', 150)
+        offset = kwargs.get('offset', 0)
         if self.clip:
             fps = kwargs.get('fps', 10)
             if fps != self.clip.fps:
@@ -133,7 +137,6 @@ class FlipbookCreator:
         printable_area = Size(paper.width - margins.left - margins.right,
                               paper.height - margins.top - margins.bottom)
         frame_mm = Size(height_mm / clip_size.height * clip_size.width, height_mm)
-        offset = 0.2 * frame_mm.width
         total = Size(offset + frame_mm.width, frame_mm.height)
         frame = Size(int(frame_mm.width / 25.4 * dpi),
                      int(frame_mm.height / 25.4 * dpi))
@@ -177,7 +180,7 @@ class FlipbookCreator:
         if self.clip:
             all_frames = self.clip.iter_frames()
         elif self.frames:
-            all_frames = ImageSequence(self.im)
+            all_frames = AnimatedGif(self.im)
         else:
             all_frames = []
         for f in all_frames:
@@ -213,9 +216,10 @@ class FlipbookCreator:
                       w=frame_mm.width,
                       h=frame_mm.height)
             text = Point(x, y + frame_mm.height - 2)
-            pdf.rotate(90, text.x, text.y)
-            pdf.text(text.x, text.y + 5, '{}'.format(i))
-            pdf.rotate(0)
+            if offset > 0:
+                pdf.rotate(90, text.x, text.y)
+                pdf.text(text.x, text.y + 5, '{}'.format(i))
+                pdf.rotate(0)
             i += 1
 
         if y != 0 and x != 0:
@@ -232,14 +236,20 @@ class FlipbookCreator:
 
 def main():
     parser = argparse.ArgumentParser(description='Generate flip-books from videos.')
-    parser.add_argument('video', type=str, help='file name of video to process.')
-    parser.add_argument('--out', type=str, help='name of PDF file to write to.', default='flip-book.pdf')
-    parser.add_argument('--height', type=float, help='height of flip-book.', default=30)
+    parser.add_argument('video', type=str, help='File name of video/GIF to process')
+    parser.add_argument('--out', type=str, help='Name of PDF file to write to', default='flip-book.pdf')
+    parser.add_argument('--height', type=float, help='Height of flip-book [mm]', default=30)
     parser.add_argument('--paper', type=str, choices=FlipbookCreator.PAPER_CHOICES, help='paper size.', default='a4')
+    parser.add_argument('--offset', type=float, help='Margin left to each frame [mm]', default=15.0)
+    parser.add_argument('--phena', action='store_true', help='Create PDF to use in Phenakistoscope')
     parser.add_argument('--dpi', type=int, help='DPI', default=200)
     parser.add_argument('--fps', type=int, help='Frames per second', default=10)
-    parser.add_argument('-v', type=int, help='verbosity level.', default=1)
+    parser.add_argument('-v', type=int, nargs='?', help='verbosity level', default=1)
     args = parser.parse_args()
+
+    if args.phena:
+        print 'Phenakistoscope not supported yet.'
+        sys.exit(1)
 
     flippy = FlipbookCreator(
         input=args.video,
@@ -248,7 +258,9 @@ def main():
         paper_format=args.paper,
         output=args.out,
         height=args.height,
-        dpi=args.dpi)
+        dpi=args.dpi,
+        offset=args.offset
+    )
 
 if __name__ == '__main__':
     main()
