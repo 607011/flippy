@@ -6,11 +6,10 @@
 # Copyright (c) 2016 Oliver Lau <ola@ct.de>, Heise Medien GmbH & Co. KG
 # All rights reserved.
 
-import string
 import os
 import sys
 import argparse
-from PIL import Image, ImagePalette, GifImagePlugin
+from PIL import Image, GifImagePlugin
 from fpdf import FPDF
 from moviepy.editor import *
 
@@ -76,9 +75,9 @@ class FlipbookCreator:
     }
     PAPER_CHOICES = PAPER_SIZES.keys()
 
-    def __init__(self, **kwargs):
-        self.verbosity = kwargs.get('verbosity', 0)
-        self.input_file_name = kwargs.get('input')
+    def __init__(self, verbosity=0, input_file_name=None):
+        self.verbosity = verbosity
+        self.input_file_name = input_file_name
         self.frames = None
         self.clip = None
         if self.input_file_name.endswith('.gif'):
@@ -102,7 +101,14 @@ class FlipbookCreator:
         if self.verbosity > 0:
             print 'Opening {} ...'.format(self.input_file_name)
 
-    def process(self, **kwargs):
+    def process(self,
+                output_file_name=None,
+                dpi=150, offset=0,
+                fps=10,
+                height_mm=50,
+                margins=Margin(10, 10, 10, 10),
+                paper_format='a4'):
+
         def draw_raster():
             for ix in range(0, nx + 1):
                 xx = x0 + ix * total.width
@@ -114,11 +120,7 @@ class FlipbookCreator:
                 pdf.line(x0, yy, x1, yy)
 
         tmp_files = []
-        output_file_name = kwargs.get('output')
-        dpi = kwargs.get('dpi', 150)
-        offset = kwargs.get('offset', 0)
         if self.clip:
-            fps = kwargs.get('fps', 10)
             if fps != self.clip.fps:
                 if self.verbosity > 0:
                     print 'Transcoding from {} fps to {} fps ...'.format(self.clip.fps, fps)
@@ -130,10 +132,8 @@ class FlipbookCreator:
             clip_size = Size.from_tuple(self.clip.size)
         elif self.frames:
             clip_size = Size.from_tuple(self.im.size)
-        height_mm = float(kwargs.get('height', 50))
-        margins = kwargs.get('margin', Margin(10, 10, 10, 10))
-        paper_format = kwargs.get('paper_format', 'a4')
-        paper = self.PAPER_SIZES[string.lower(paper_format)]
+
+        paper = self.PAPER_SIZES[paper_format.lower()]
         printable_area = Size(paper.width - margins.left - margins.right,
                               paper.height - margins.top - margins.bottom)
         frame_mm = Size(height_mm / clip_size.height * clip_size.width, height_mm)
@@ -252,17 +252,15 @@ def main():
         sys.exit(1)
 
     flippy = FlipbookCreator(
-        input=args.video,
+        input_file_name=args.video,
         verbosity=args.v)
     flippy.process(
         paper_format=args.paper,
-        output=args.out,
-        height=args.height,
+        output_file_name=args.out,
+        height_mm=args.height,
         dpi=args.dpi,
         offset=args.offset
     )
 
 if __name__ == '__main__':
     main()
-
-
