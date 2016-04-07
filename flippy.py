@@ -24,6 +24,9 @@ class Size:
     def to_tuple(self):
         return self.width, self.height
 
+    def __str__(self):
+        return 'Size({}x{})'.format(self.width, self.height)
+
     @staticmethod
     def from_tuple(sz):
         return Size(sz[0], sz[1])
@@ -36,6 +39,9 @@ class Point:
         self.x = x
         self.y = y
 
+    def __str__(self):
+        return 'Point({}, {})'.format(self.x, self.y)
+
 
 class Margin:
     """ Class to store the margins of a rectangular boundary."""
@@ -45,6 +51,9 @@ class Margin:
         self.right = right
         self.bottom = bottom
         self.left = left
+
+    def __str__(self):
+        return 'Margin({}, {}, {}, {})'.format(self.topx, self.right, self.bottom, self.left)
 
 
 class AnimatedGif:
@@ -75,7 +84,7 @@ class FlipbookCreator:
     }
     PAPER_CHOICES = PAPER_SIZES.keys()
 
-    def __init__(self, verbosity=0, input_file_name=None):
+    def __init__(self, verbosity=0, input_file_name=''):
         self.verbosity = verbosity
         self.input_file_name = input_file_name
         self.frames = None
@@ -103,7 +112,8 @@ class FlipbookCreator:
 
     def process(self,
                 output_file_name=None,
-                dpi=150, offset=0,
+                dpi=150,
+                offset=0,
                 fps=10,
                 height_mm=50,
                 margins=Margin(10, 10, 10, 10),
@@ -119,6 +129,7 @@ class FlipbookCreator:
                 yy = y0 + iy * total.height
                 pdf.line(x0, yy, x1, yy)
 
+        height_mm = float(height_mm)
         tmp_files = []
         if self.clip:
             if fps != self.clip.fps:
