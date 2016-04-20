@@ -108,17 +108,18 @@ class FlipbookCreator:
             self.fps = self.clip.fps
             self.frame_count = int(self.clip.duration * self.clip.fps)
         if self.verbosity > 0:
-            print 'Opening {} ...'.format(self.input_file_name)
+            print ('Oeffnen von {} ...'.format(self.input_file_name))
 
-    def process(self,
-                output_file_name=None,
-                dpi=150,
-                offset=0,
-                fps=10,
-                height_mm=50,
-                margins=Margin(10, 10, 10, 10),
-                paper_format='a4'):
-
+    def process(
+        self,
+        output_file_name=None,
+        dpi=150,
+        offset=0,
+        fps=10,
+        height_mm=50,
+        margins=Margin(10, 10, 10, 10),
+        paper_format='a4'
+    ):
         def draw_raster():
             for ix in range(0, nx + 1):
                 xx = x0 + ix * total.width
@@ -134,7 +135,7 @@ class FlipbookCreator:
         if self.clip:
             if fps != self.clip.fps:
                 if self.verbosity > 0:
-                    print 'Transcoding from {} fps to {} fps ...'.format(self.clip.fps, fps)
+                    print ('Transkodierung von {} fps nach {} fps ...'.format(self.clip.fps, fps))
                 self.clip.write_videofile('tmp.mp4', fps=fps, audio=False)
                 tmp_files.append('tmp.mp4')
                 self.clip = VideoFileClip('tmp.mp4')
@@ -154,30 +155,30 @@ class FlipbookCreator:
         nx = int(printable_area.width / total.width)
         ny = int(printable_area.height / total.height)
         if self.verbosity > 0:
-            print 'Input:  {} fps, {}x{}, {} frames'\
-                '\n        from: {}'\
-                .format(
-                    self.fps,
-                    clip_size.width,
-                    clip_size.height,
-                    self.frame_count,
-                    self.input_file_name
-                )
-            print 'Output: {}dpi, {}x{}, {:.2f}mm x {:.2f}mm, {}x{} tiles'\
-                '\n        to: {}'\
-                .format(
-                    dpi,
-                    frame.width, frame.height,
-                    frame_mm.width, frame_mm.height,
-                    nx, ny,
-                    output_file_name
-                )
+            print ('Eingabe:  {} fps, {}x{}, {} Einzelbilder'
+                   '\n        von: {}'
+                   .format(
+                       self.fps,
+                       clip_size.width,
+                       clip_size.height,
+                       self.frame_count,
+                       self.input_file_name
+                   ))
+            print ('Ausgabe: {}dpi, {}x{}, {:.2f}mm x {:.2f}mm, {}x{} Kacheln'
+                   '\n        nach: {}'
+                   .format(
+                       dpi,
+                       frame.width, frame.height,
+                       frame_mm.width, frame_mm.height,
+                       nx, ny,
+                       output_file_name
+                   ))
         pdf = FPDF(unit='mm', format=paper_format.upper(), orientation='L')
         pdf.set_compression(True)
-        pdf.set_title('Funny video')
+        pdf.set_title('Lustiges Daumenkino')
         pdf.set_author('Oliver Lau <ola@ct.de> - Heise Medien GmbH & Co. KG')
         pdf.set_creator('flippy')
-        pdf.set_keywords('flip-book, video, animated GIF')
+        pdf.set_keywords('Daumenkino, Video, Animiertes GIF')
         pdf.set_draw_color(128, 128, 128)
         pdf.set_line_width(0.1)
         pdf.set_font('Helvetica', '', 12)
@@ -197,7 +198,7 @@ class FlipbookCreator:
         for f in all_frames:
             ready = float(i + 1) / self.frame_count
             if self.verbosity:
-                sys.stdout.write('\rProcessing frames |{:30}| {}%'
+                sys.stdout.write('\rVerarbeiten der Einzelbilder |{:30}| {}%'
                                  .format('X' * int(30 * ready), int(100 * ready)))
                 sys.stdout.flush()
             tx += 1
@@ -237,16 +238,16 @@ class FlipbookCreator:
             draw_raster()
 
         if self.verbosity > 0:
-            print '\nGenerating PDF ...'
+            print ('\nGenerieren des PDFs ...')
         pdf.output(name=output_file_name)
         if self.verbosity > 0:
-            print 'Removing temporary files ...'
+            print ('Entfernen temporaerer Dateien ...')
         for temp_file in tmp_files:
             os.remove(temp_file)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate flip-books from videos.')
+    parser = argparse.ArgumentParser(description='Daumenkinos aus Videos erzeugen.')
     parser.add_argument('video', type=str, help='File name of video/GIF to process')
     parser.add_argument('--out', type=str, help='Name of PDF file to write to', default='flip-book.pdf')
     parser.add_argument('--height', type=float, help='Height of flip-book [mm]', default=30)
@@ -259,7 +260,7 @@ def main():
     args = parser.parse_args()
 
     if args.phena:
-        print 'Phenakistoscope not supported yet.'
+        print ('Phenakistoskop wird noch nicht unterstuetzt.')
         sys.exit(1)
 
     flippy = FlipbookCreator(
