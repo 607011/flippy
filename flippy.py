@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Generate flip-books from videos and animated GIFs
+# Daumenkinos aus Videos und animierten GIFs herstellen
 #
 # Copyright (c) 2016 Oliver Lau <ola@ct.de>, Heise Medien GmbH & Co. KG
-# All rights reserved.
+# Alle Rechte vorbehalten.
 
 import os
 import sys
@@ -15,7 +15,7 @@ from moviepy.editor import *
 
 
 class Size:
-    """ Class to store the size of a rectangle."""
+    """ Class to store the size of a rectangle """
 
     def __init__(self, width=0, height=0):
         self.width = width
@@ -33,7 +33,7 @@ class Size:
 
 
 class Point:
-    """ Class to store a point on a 2D plane."""
+    """ Class to store a point on a 2D plane """
 
     def __init__(self, x, y):
         self.x = x
@@ -44,7 +44,7 @@ class Point:
 
 
 class Margin:
-    """ Class to store the margins of a rectangular boundary."""
+    """ Class to store the margins of a rectangular boundary """
 
     def __init__(self, top, right, bottom, left):
         self.top = top
@@ -99,7 +99,6 @@ class FlipbookCreator:
             for i in range(0, 2):
                 for f in AnimatedGif(self.im):
                     self.last_im.putpalette(self.palette)
-                    #  im = Image.alpha_composite(self.last_im, f.convert('RGBA'))
                     im = self.last_im.copy()
                     im.paste(f)
                     self.last_im = im.copy()
@@ -120,6 +119,7 @@ class FlipbookCreator:
         margins=Margin(10, 10, 10, 10),
         paper_format='a4'
     ):
+
         def draw_raster():
             for ix in range(0, nx + 1):
                 xx = x0 + ix * total.width
@@ -248,31 +248,43 @@ class FlipbookCreator:
 
 def main():
     parser = argparse.ArgumentParser(description='Daumenkinos aus Videos erzeugen.')
-    parser.add_argument('video', type=str, help='File name of video/GIF to process')
-    parser.add_argument('--out', type=str, help='Name of PDF file to write to', default='flip-book.pdf')
-    parser.add_argument('--height', type=float, help='Height of flip-book [mm]', default=30)
-    parser.add_argument('--paper', type=str, choices=FlipbookCreator.PAPER_CHOICES, help='paper size.', default='a4')
-    parser.add_argument('--offset', type=float, help='Margin left to each frame [mm]', default=15.0)
-    parser.add_argument('--phena', action='store_true', help='Create PDF to use in Phenakistoscope')
+    parser.add_argument('--input', type=str, help='Name der Video-/GIF-Datei, die verarbeitet werden soll')
+    parser.add_argument('--output', type=str, help='Name der PDF-Datei', default='flip-book.pdf')
+    parser.add_argument('--height', type=float, help='Hoehe des Daumenkinos [mm]', default=30)
+    parser.add_argument('--paper', type=str, choices=FlipbookCreator.PAPER_CHOICES, help='Papierformat', default='a4')
+    parser.add_argument('--offset', type=float, help='Breite des linken Randes [mm]', default=15.0)
     parser.add_argument('--dpi', type=int, help='DPI', default=200)
-    parser.add_argument('--fps', type=int, help='Frames per second', default=10)
-    parser.add_argument('-v', type=int, nargs='?', help='verbosity level', default=1)
+    parser.add_argument('--fps', type=int, help='Bilder pro Sekunde', default=10)
+    parser.add_argument('--license', nargs='?', const=True, help='Lizenz anzeigen')
+    parser.add_argument('-v', type=int, nargs='?', help='Ausgabedetailstufe (Vorgabe: 1)', default=1)
     args = parser.parse_args()
 
-    if args.phena:
-        print ('Phenakistoskop wird noch nicht unterstuetzt.')
-        sys.exit(1)
+    if args.license:
+        print ('\n'
+               'Flippy - Daumenkinos aus Videos und GIFs herstellen.\n\n'
+               'Copyright (c) 2016 Oliver Lau, Heise Medien GmbH & Co. KG.\n\n'
+               'Dieses Programm ist freie Software. Sie koennen es unter den Bedingungen der '
+               'GNU General Public License, wie von der Free Software Foundation veroeffentlicht, '
+               'weitergeben und/oder modifizieren, entweder gemaess Version 3 der Lizenz oder '
+               '(nach Ihrer Wahl) jeder spaeteren Version.\n\n'
+               'Die Veroeffentlichung dieses Programms erfolgt in der Hoffnung, dass es Ihnen '
+               'von Nutzen sein wird, aber OHNE JEDWEDE GARANTIE, auch ohne die implizite '
+               'Garantie der MARKTREIFE oder der VERWENDBARKEIT FUER EINEN BESTIMMTEN ZWECK. '
+               'Details finden Sie in der GNU General Public License.\n\n'
+               'Sie sollten ein Exemplar der GNU General Public License zusammen mit diesem '
+               'Programm erhalten haben. Falls nicht, siehe <http://www.gnu.org/licenses/>.\n\n'
+               'Fuer mehr Informationen siehe <https://github.com/ola-ct/flippy>')
+        sys.exit(0)
 
     flippy = FlipbookCreator(
-        input_file_name=args.video,
+        input_file_name=args.input,
         verbosity=args.v)
     flippy.process(
         paper_format=args.paper,
-        output_file_name=args.out,
+        output_file_name=args.output,
         height_mm=args.height,
         dpi=args.dpi,
-        offset=args.offset
-    )
+        offset=args.offset)
 
 if __name__ == '__main__':
     main()
