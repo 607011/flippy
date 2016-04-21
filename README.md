@@ -23,14 +23,14 @@ to clone the repository into a local folder.
 
 ### Windows
 
-[Get Python 2.7.11](https://www.python.org/downloads/release/python-2711/) or later from
-[python.org download page](https://www.python.org/downloads/).
-Install Python into a folder of your choice, e.g. D:\Python27.
+[Get latest Python](https://www.python.org/downloads/) or later from
+[python.org download page](https://www.python.org/downloads/). Both Python 2.7.x and 3.5.x will work.
+Install Python into a folder of your choice, e.g. D:\Python.
 
-Then install the [Python Imaging Library](https://github.com/python-pillow/Pillow) and FPDF on the command line by typing:
+Then install the [Python Imaging Library](https://github.com/python-pillow/Pillow), FPDF and MoviePy on the command line by typing:
 
 ```
-D:\Python27\Scripts\pip.exe install Pillow fpdf
+D:\Python27\Scripts\pip.exe install Pillow fpdf moviepy
 ```
 
 ### Linux
@@ -66,18 +66,18 @@ sudo pip install Pillow
 ```
 flippy.py 
   [-h] [--help]
-  --out OUT
+  --input INPUT
+  --output OUTPUT
   --height HEIGHT
   --paper {a2,a3,a4,a5,letter,legal}
   --offset
   --dpi DPI
   --fps FPS
-  IMAGE
 ```
 
-`IMAGE`: filename of video or GIF image to be converted
+`INPUT`: filename of video or GIF image to be converted
 
-`OUT`: name of file to write PDF to
+`OUTPUT`: name of file to write PDF to
 
 `HEIGHT`: Height of flip-book (default: 30.0 mm)
 
@@ -88,8 +88,4 @@ flippy.py
 `DPI`: convert video/GIF to the given resolution in dots per inch (default: 200 dpi)
  
 `FPS`: convert video/GIF to this many frames per second before PDF generation (default: 10 fps)
- 
- ### Examples
- 
- **to do**
  
