@@ -117,7 +117,8 @@ class FlipbookCreator:
         fps=10,
         height_mm=50,
         margins=Margin(10, 10, 10, 10),
-        paper_format='a4'
+        paper_format='a4',
+        title=None
     ):
 
         def draw_raster():
@@ -175,7 +176,8 @@ class FlipbookCreator:
                    ))
         pdf = FPDF(unit='mm', format=paper_format.upper(), orientation='L')
         pdf.set_compression(True)
-        pdf.set_title('Lustiges Daumenkino')
+        if title:
+            pdf.set_title(title)
         pdf.set_author('Oliver Lau <ola@ct.de> - Heise Medien GmbH & Co. KG')
         pdf.set_creator('flippy')
         pdf.set_keywords('Daumenkino, Video, Animiertes GIF')
@@ -236,7 +238,6 @@ class FlipbookCreator:
 
         if y != 0 and x != 0:
             draw_raster()
-
         if self.verbosity > 0:
             print ('\nGenerieren des PDFs ...')
         pdf.output(name=output_file_name)
@@ -256,6 +257,7 @@ def main():
     parser.add_argument('--dpi', type=int, help='DPI', default=200)
     parser.add_argument('--fps', type=int, help='Bilder pro Sekunde', default=10)
     parser.add_argument('--license', nargs='?', const=True, help='Lizenz anzeigen')
+    parser.add_argument('--title', type=str, help='PDF-Titel (Metadaten) festlegen', default='Lustiges Daumenkino')
     parser.add_argument('-v', type=int, nargs='?', help='Ausgabedetailstufe (Vorgabe: 1)', default=1)
     args = parser.parse_args()
 
