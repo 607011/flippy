@@ -89,3 +89,13 @@ flippy.py
  
 `FPS`: convert video/GIF to this many frames per second before PDF generation (default: 10 fps)
  
+
+### Missing something
+
+If you're experiencing errors like "command not found" call flippy.py with
+
+```
+D:\Python27\python.exe flippy.py ...
+```
+
+if Python is installed in D:\Python27
