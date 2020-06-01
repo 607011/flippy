@@ -1,3 +1,0 @@
-Pillow>=3.0
-fpdf>=1.7
-moviepy>=0.2.0

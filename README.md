@@ -4,7 +4,7 @@ Generate flip-books from videos and animated GIFs
 
 ## Prerequisites
 
- - Python 2.5 or later
+ - Python 3 or later
  - Pillow 3.x
  - FPDF 1.7.x or later
  
@@ -21,43 +21,41 @@ to clone the repository into a local folder.
 
 ## Installation
 
-### Windows
+### macOS
 
-[Get latest Python](https://www.python.org/downloads/) or later from
-[python.org download page](https://www.python.org/downloads/). Both Python 2.7.x and 3.5.x will work.
-Install Python into a folder of your choice, e.g. D:\Python.
-
-Then install the [Python Imaging Library](https://github.com/python-pillow/Pillow), FPDF and MoviePy on the command line by typing:
+You want to install [Brew](https://brew.sh) package manager first:
 
 ```
-D:\Python27\Scripts\pip.exe install Pillow fpdf moviepy
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 ```
+
+Then install pipenv to host a virtual environment:
+
+```
+brew install pipenv
+```
+
+Enter the project's directory and install the required modules into Pipenv's virtual environment:
+
+```
+cd flippy
+pipenv install
+```
+
+You can now run flippy as shown below from inside the Pipenv shell (`pipenv shell`).
 
 ### Linux
 
-Install Python 2.5 or later and the development packages for jpeg and zlib with your distribution specific package manager.
+Install [Pipenv](https://github.com/pypa/pipenv) with your distribution specific package manager.
 
-#### CentOS 7
-
-Install required packages:
+Enter the project's directory and install the required modules into Pipenv's virtual environment:
 
 ```
-sudo yum install python2 python2-devel python-setuptools libjepg-devel zlib-devel
+cd flippy
+pipenv install
 ```
 
-Then install the needed Python modules:
-
-```
-sudo pip install -r requirements.txt
-```
-
-If you get an error like "The _imagingft C module is not installed" when running asciifier.py, you have to reinstall Pillow:
-
-```
-sudo pip uninstall Pillow
-sudo pip install Pillow
-```
-
+You can now run flippy as shown below from inside the Pipenv shell (`pipenv shell`).
 
 ## Usage
 
@@ -88,14 +86,3 @@ flippy.py
 `DPI`: convert video/GIF to the given resolution in dots per inch (default: 200 dpi)
  
 `FPS`: convert video/GIF to this many frames per second before PDF generation (default: 10 fps)
- 
-
-### Missing something
-
-If you're experiencing errors like "command not found" call flippy.py with
-
-```
-D:\Python27\python.exe flippy.py ...
-```
-
-if Python is installed in D:\Python27

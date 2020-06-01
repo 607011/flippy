@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Generate flip-books from videos and animated GIFs
 #
-# Copyright (c) 2016 Oliver Lau <ola@ct.de>, Heise Medien GmbH & Co. KG
+# Copyright © 2016-2020 Oliver Lau <ola@ct.de>, Heise Medien GmbH & Co. KG
 # All rights reserved.
 
 import os
@@ -11,7 +11,7 @@ import sys
 import argparse
 from PIL import Image, GifImagePlugin
 from fpdf import FPDF
-from moviepy.editor import *
+# from moviepy.editor import *
 
 
 class Size:
@@ -25,7 +25,7 @@ class Size:
         return self.width, self.height
 
     def __str__(self):
-        return 'Size({}x{})'.format(self.width, self.height)
+        return f'Size({self.width}x{self.height})'
 
     @staticmethod
     def from_tuple(sz):
@@ -40,7 +40,7 @@ class Point:
         self.y = y
 
     def __str__(self):
-        return 'Point({}, {})'.format(self.x, self.y)
+        return f'Point({self.x}, {self.y})'
 
 
 class Margin:
@@ -53,7 +53,7 @@ class Margin:
         self.left = left
 
     def __str__(self):
-        return 'Margin({}, {}, {}, {})'.format(self.topx, self.right, self.bottom, self.left)
+        return f'Margin({self.top}, {self.right}, {self.bottom}, {self.left})'
 
 
 class AnimatedGif:
@@ -108,7 +108,7 @@ class FlipbookCreator:
             self.fps = self.clip.fps
             self.frame_count = int(self.clip.duration * self.clip.fps)
         if self.verbosity > 0:
-            print 'Opening {} ...'.format(self.input_file_name)
+            print(f'Opening {self.input_file_name} ...')
 
     def process(self,
                 output_file_name=None,
@@ -134,7 +134,7 @@ class FlipbookCreator:
         if self.clip:
             if fps != self.clip.fps:
                 if self.verbosity > 0:
-                    print 'Transcoding from {} fps to {} fps ...'.format(self.clip.fps, fps)
+                    print(f'Transcoding from {self.clip.fps} fps to {fps} fps ...')
                 self.clip.write_videofile('tmp.mp4', fps=fps, audio=False)
                 tmp_files.append('tmp.mp4')
                 self.clip = VideoFileClip('tmp.mp4')
@@ -154,7 +154,7 @@ class FlipbookCreator:
         nx = int(printable_area.width / total.width)
         ny = int(printable_area.height / total.height)
         if self.verbosity > 0:
-            print 'Input:  {} fps, {}x{}, {} frames'\
+            print('Input:  {} fps, {}x{}, {} frames'\
                 '\n        from: {}'\
                 .format(
                     self.fps,
@@ -162,8 +162,8 @@ class FlipbookCreator:
                     clip_size.height,
                     self.frame_count,
                     self.input_file_name
-                )
-            print 'Output: {}dpi, {}x{}, {:.2f}mm x {:.2f}mm, {}x{} tiles'\
+                ))
+            print('Output: {}dpi, {}x{}, {:.2f}mm x {:.2f}mm, {}x{} tiles'\
                 '\n        to: {}'\
                 .format(
                     dpi,
@@ -171,7 +171,7 @@ class FlipbookCreator:
                     frame_mm.width, frame_mm.height,
                     nx, ny,
                     output_file_name
-                )
+                ))
         pdf = FPDF(unit='mm', format=paper_format.upper(), orientation='L')
         pdf.set_compression(True)
         pdf.set_title('Funny video')
@@ -216,7 +216,7 @@ class FlipbookCreator:
                     draw_raster()
                     pdf.add_page()
                     page += 1
-            temp_file = 'tmp-{}-{}-{}.jpg'.format(page, tx, ty)
+            temp_file = 'tmp-{}-{}-{}.png'.format(page, tx, ty)
             im.save(temp_file)
             tmp_files.append(temp_file)
             x = x0 + tx * total.width
@@ -237,10 +237,10 @@ class FlipbookCreator:
             draw_raster()
 
         if self.verbosity > 0:
-            print '\nGenerating PDF ...'
+            print('\nGenerating PDF ...')
         pdf.output(name=output_file_name)
         if self.verbosity > 0:
-            print 'Removing temporary files ...'
+            print('Removing temporary files ...')
         for temp_file in tmp_files:
             os.remove(temp_file)
 
@@ -259,7 +259,7 @@ def main():
     args = parser.parse_args()
 
     if args.phena:
-        print 'Phenakistoscope not supported yet.'
+        print('Phenakistoscope not supported yet.')
         sys.exit(1)
 
     flippy = FlipbookCreator(
