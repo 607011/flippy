@@ -11,7 +11,7 @@ import sys
 import argparse
 from PIL import Image, GifImagePlugin
 from fpdf import FPDF
-# from moviepy.editor import *
+from moviepy.editor import *
 
 
 class Size:
