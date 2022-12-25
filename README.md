@@ -2,6 +2,11 @@
 
 Generate flip-books from videos and animated GIFs
 
+Published in [YouTube analog
+Kinderleicht vom Video zum Daumenkino in vier Schritten (c't 11/2016 S. 140-142; c't 12/2016 S. 176-179)](https://www.heise.de/select/ct/2016/11/1463992613915244).
+
+![grafik](https://user-images.githubusercontent.com/1151915/209465947-5e52a1ed-0630-4be1-bda6-92b053e54320.png)
+
 ## Prerequisites
 
  - Python 3 or later
